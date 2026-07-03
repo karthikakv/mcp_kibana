@@ -1,0 +1,27 @@
+{
+  "name": "elasticsearch-mcp",
+  "version": "1.0.0",
+  "description": "Read-only MCP server exposing Elasticsearch/Kibana log indices",
+  "type": "module",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.14.0",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "express": "^4.19.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
