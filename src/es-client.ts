@@ -11,6 +11,12 @@ export const ALLOWED_PATTERNS = [
   "openshift_apps_java",
 ];
 
+export const INDEX_OPTIONS = [
+  "java_application_logs",
+  "wmapi",
+  "openshift_apps_java",
+];
+
 const INDEX_ALIASES: Record<string, string> = {
   java_application_logs: "java_application_logs",
   wm_api: "wmapi",
@@ -61,8 +67,21 @@ export function assertAllowedIndex(index: string): string {
 
 export function resolveAllowedIndex(index?: string): string {
   if (!index || !index.trim()) {
-    // Default to java application logs unless overridden by DEFAULT_INDEX_ALIAS.
-    const defaultAlias = process.env.DEFAULT_INDEX_ALIAS?.trim() || "java_application_logs";
+    const requireSelection =
+      process.env.REQUIRE_INDEX_SELECTION !== "false";
+
+    if (requireSelection) {
+      throw new Error(
+        "Index is required. Please choose one index: " +
+          "java_application_logs (application/message), " +
+          "wmapi (apiName/responseCode), " +
+          "openshift_apps_java (kubernetes_namespace_name/message)."
+      );
+    }
+
+    // Optional fallback mode when REQUIRE_INDEX_SELECTION=false.
+    const defaultAlias =
+      process.env.DEFAULT_INDEX_ALIAS?.trim() || "java_application_logs";
     try {
       return assertAllowedIndex(defaultAlias);
     } catch {

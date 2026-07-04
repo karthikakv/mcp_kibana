@@ -7,10 +7,43 @@ import {
   assertAllowedIndex,
   assertEsqlAllowed,
   resolveAllowedIndex,
+  INDEX_OPTIONS,
   ALLOWED_PATTERNS,
 } from "./es-client.js";
 
 const PORT = Number(process.env.PORT) || 8080;
+
+function pickLogMessage(source: Record<string, any>): string | null {
+  const raw =
+    source.message ??
+    source.log ??
+    source["event.original"] ??
+    source["log.original"] ??
+    null;
+
+  if (raw == null) return null;
+  const text = typeof raw === "string" ? raw : JSON.stringify(raw);
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.toLowerCase() === "(empty)") return null;
+  return trimmed;
+}
+
+function pickAppIdentifier(
+  index: string,
+  source: Record<string, any>
+): string | null {
+  if (index.includes("wmapi")) {
+    return source.apiName ?? source["service.name"] ?? null;
+  }
+  if (index.includes("openshift_apps_java")) {
+    return (
+      source.kubernetes_namespace_name ??
+      source["kubernetes.namespace_name"] ??
+      null
+    );
+  }
+  return source.application ?? source["service.name"] ?? null;
+}
 
 /** Build a fresh MCP server with all read-only Elasticsearch tools registered. */
 function buildServer(): McpServer {
@@ -78,7 +111,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, DEFAULT_INDEX_ALIAS is used."),
+          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, you will be asked to choose an index."),
       },
     },
     async ({ index }) => {
@@ -107,7 +140,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, DEFAULT_INDEX_ALIAS is used."),
+          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, you will be asked to choose an index."),
         query: z
           .record(z.any())
           .optional()
@@ -164,7 +197,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, DEFAULT_INDEX_ALIAS is used."),
+          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, you will be asked to choose an index."),
         query: z.record(z.any()).optional().describe("Optional Query DSL filter."),
       },
     },
@@ -217,7 +250,7 @@ function buildServer(): McpServer {
       title: "Search text in time range",
       description:
         "Search logs for a text term over a timestamp range. Use this for queries like 'ecustomermw from 2026-07-02 00:00 to 23:59'. " +
-        "If index is omitted, DEFAULT_INDEX_ALIAS is used.",
+        "If index is omitted, the tool returns index options so the user can choose.",
       inputSchema: {
         text: z.string().min(1).describe("Text to search for (e.g. ecustomermw)."),
         start_time: z
@@ -233,7 +266,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Optional index or alias (java_application_logs, wmapi, openshift_apps_java, wm_api, openshift). If omitted, DEFAULT_INDEX_ALIAS is used."),
+          .describe("Optional index or alias (java_application_logs, wmapi, openshift_apps_java, wm_api, openshift). If omitted, you will be asked to choose an index."),
         size: z.number().int().min(1).max(200).optional().describe("Max hits (default 100, cap 200)."),
       },
     },
@@ -291,11 +324,40 @@ function buildServer(): McpServer {
             ? res.hits.total
             : res.hits.total?.value;
 
+        const rawHits = res.hits.hits as Array<any>;
+        const logs = rawHits
+          .map((hit) => {
+            const source = (hit?._source ?? {}) as Record<string, any>;
+            return {
+              timestamp: source["@timestamp"] ?? null,
+              app_or_service: pickAppIdentifier(idx, source),
+              level: source.level ?? source["log.level"] ?? null,
+              response_code: source.responseCode ?? null,
+              log_message: pickLogMessage(source),
+            };
+          })
+          .filter((entry) => Boolean(entry.log_message));
+
+        if (logs.length === 0) {
+          return ok({
+            status: "no_logs_found",
+            message:
+              "No non-empty log lines were found for the requested text and time range.",
+            index_used: idx,
+            index_options: INDEX_OPTIONS,
+            tip:
+              "If index was not specified, choose one index and retry. Also verify app/service value and time range.",
+            total_hits: total,
+            took_ms: res.took,
+          });
+        }
+
         return ok({
+          status: "ok",
           total_hits: total,
           took_ms: res.took,
           index_used: idx,
-          hits: res.hits.hits,
+          logs,
         });
       } catch (e) {
         return fail(e);

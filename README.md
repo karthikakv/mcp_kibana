@@ -21,10 +21,9 @@ AI client ──▶ mcp-remote ──HTTP──▶ elasticsearch-mcp ──REST�
 ## Allowed indices (hardcoded allowlist)
 
 ```
-java_application_logs*
-wmapi*
-wm_messages*
-openshift_pod_logs*
+java_application_logs
+wmapi
+openshift_apps_java
 ```
 
 Any request targeting an index outside this list is rejected before it ever
@@ -69,8 +68,9 @@ curl -s -X POST localhost:8080/mcp \
 2. **Configuration → Application settings**, add:
   - `ES_URL = https://novaelastic-ecac65.es.eastus.azure.elastic.cloud`
    - `ES_API_KEY = <new read-only key>`
-  - `DEFAULT_INDEX_ALIAS = java_application_logs` *(optional; used when tool call omits `index`)*
-   - `ES_TLS_REJECT_UNAUTHORIZED = false`  *(only if self-signed test cert)*
+  - `REQUIRE_INDEX_SELECTION = true` *(recommended; when index is omitted, user is asked to choose one)*
+  - `DEFAULT_INDEX_ALIAS = java_application_logs` *(optional fallback used only when `REQUIRE_INDEX_SELECTION=false`)*
+  - `ES_TLS_REJECT_UNAUTHORIZED = true` *(for Elastic Cloud; set false only for self-signed test certs)*
    - `MCP_AUTH_TOKEN = <a long random string>`
    - `SCM_DO_BUILD_DURING_DEPLOYMENT = true`
 3. **Startup command:** `npm start` (App Service runs `npm install` + `npm run build` when the build flag above is set).
