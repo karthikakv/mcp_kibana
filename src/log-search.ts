@@ -38,7 +38,7 @@ export const INDEX_PROFILES: IndexProfile[] = [
     extraFields: { status_code: "responseCode" },
   },
   {
-    index: "openshift_pod_logs",
+    index: "openshift_apps_java",
     entityFields: ["kubernetes_namespace_name", "kubernetes.namespace_name"],
     messageFields: ["message", "log"],
   },
@@ -138,7 +138,7 @@ export function registerFindLogsTool(server: McpServer) {
         "(target) that can be an application, an API, or an OpenShift namespace; optional free " +
         "text to match in the message; an optional time window ('7d', '24h', 'past 1 week', or " +
         "blank = last 24h); and an optional status_code. The server probes java_application_logs, " +
-        "wmapi and openshift_pod_logs, detects where the name lives, searches only those, sorts " +
+        "wmapi and openshift_apps_java, detects where the name lives, searches only those, sorts " +
         "newest-first, and tags each line with its index. Use this for almost every log question.",
       inputSchema: {
         target: z
@@ -252,4 +252,15 @@ export function registerFindLogsTool(server: McpServer) {
       }
     }
   );
+}
+
+// Startup guard: ensure INDEX_PROFILES matches ALLOWED_PATTERNS
+import { ALLOWED_PATTERNS } from "./es-client.js";
+for (const p of INDEX_PROFILES) {
+  if (!ALLOWED_PATTERNS.includes(p.index)) {
+    throw new Error(
+      `Bug: INDEX_PROFILES has index "${p.index}" which is not in ALLOWED_PATTERNS. ` +
+      `Update es-client.ts or log-search.ts to keep them in sync.`
+    );
+  }
 }
