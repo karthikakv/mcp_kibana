@@ -67,8 +67,9 @@ curl -s -X POST localhost:8080/mcp \
 1. **Create a Web App** (Node 18/20 LTS). If ES is on a private network, enable
    **VNet integration** so the app can resolve/reach `test-elasticsearch:9200`.
 2. **Configuration → Application settings**, add:
-   - `ES_URL = https://test-elasticsearch:9200`
+  - `ES_URL = https://novaelastic-ecac65.es.eastus.azure.elastic.cloud`
    - `ES_API_KEY = <new read-only key>`
+  - `DEFAULT_INDEX_ALIAS = java_application_logs` *(optional; used when tool call omits `index`)*
    - `ES_TLS_REJECT_UNAUTHORIZED = false`  *(only if self-signed test cert)*
    - `MCP_AUTH_TOKEN = <a long random string>`
    - `SCM_DO_BUILD_DURING_DEPLOYMENT = true`

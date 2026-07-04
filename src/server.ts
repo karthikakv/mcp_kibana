@@ -75,7 +75,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs."),
+          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs. If omitted, DEFAULT_INDEX_ALIAS is used."),
       },
     },
     async ({ index }) => {
@@ -101,7 +101,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs."),
+          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs. If omitted, DEFAULT_INDEX_ALIAS is used."),
         query: z
           .record(z.any())
           .optional()
@@ -158,7 +158,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs."),
+          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs. If omitted, DEFAULT_INDEX_ALIAS is used."),
         query: z.record(z.any()).optional().describe("Optional Query DSL filter."),
       },
     },

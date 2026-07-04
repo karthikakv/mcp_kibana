@@ -63,9 +63,15 @@ export function assertAllowedIndex(index: string): string {
 
 export function resolveAllowedIndex(index?: string): string {
   if (!index || !index.trim()) {
-    throw new Error(
-      "No index specified. Choose one of: java_application_logs, wm_api, wm_messages, openshift."
-    );
+    // Default to java application logs unless overridden by DEFAULT_INDEX_ALIAS.
+    const defaultAlias = process.env.DEFAULT_INDEX_ALIAS?.trim() || "java_application_logs";
+    try {
+      return assertAllowedIndex(defaultAlias);
+    } catch {
+      throw new Error(
+        `DEFAULT_INDEX_ALIAS "${defaultAlias}" is invalid. Use one of: java_application_logs, wm_api, wm_messages, openshift, or an allowed index pattern.`
+      );
+    }
   }
 
   return assertAllowedIndex(index);
