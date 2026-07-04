@@ -10,6 +10,7 @@ import {
   INDEX_OPTIONS,
   ALLOWED_PATTERNS,
 } from "./es-client.js";
+import { registerFindLogsTool } from "./log-search.js";
 
 const PORT = Number(process.env.PORT) || 8080;
 
@@ -364,6 +365,9 @@ function buildServer(): McpServer {
       }
     }
   );
+
+  // Register the smart find_logs tool
+  registerFindLogsTool(server);
 
   return server;
 }
