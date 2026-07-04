@@ -14,7 +14,7 @@ export const ALLOWED_PATTERNS = [
 const INDEX_ALIASES: Record<string, string> = {
   java_application_logs: "java_application_logs",
   wm_api: "wmapi",
-  openshift: "openshift_apps_java*",
+  openshift: "openshift_apps_java",
 };
 
 // Turn each glob pattern into an anchored regex (only `*` is a wildcard).
@@ -67,7 +67,7 @@ export function resolveAllowedIndex(index?: string): string {
       return assertAllowedIndex(defaultAlias);
     } catch {
       throw new Error(
-        `DEFAULT_INDEX_ALIAS "${defaultAlias}" is invalid. Use one of: java_application_logs, wm_api, wm_messages, openshift, or an allowed index pattern.`
+        `DEFAULT_INDEX_ALIAS "${defaultAlias}" is invalid. Use one of: java_application_logs, wm_api, openshift, or an allowed index pattern.`
       );
     }
   }

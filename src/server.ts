@@ -70,12 +70,15 @@ function buildServer(): McpServer {
     {
       title: "Get field mappings",
       description:
-        "Return the field mappings (schema) for an allowed index so you know which fields you can query.",
+        "Return field mappings for an allowed index. Field hints: " +
+        "java_application_logs -> application (app/service), message (log text); " +
+        "wmapi -> apiName (app/service), responseCode (HTTP code); " +
+        "openshift_apps_java -> kubernetes_namespace_name (namespace/app), message (log text).",
       inputSchema: {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs. If omitted, DEFAULT_INDEX_ALIAS is used."),
+          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, DEFAULT_INDEX_ALIAS is used."),
       },
     },
     async ({ index }) => {
@@ -96,12 +99,15 @@ function buildServer(): McpServer {
     {
       title: "Search logs (Query DSL)",
       description:
-        "Run a read-only Elasticsearch search against an allowed index using standard Query DSL.",
+        "Run a read-only Elasticsearch Query DSL search. Field hints: " +
+        "java_application_logs -> application, message; " +
+        "wmapi -> apiName, responseCode; " +
+        "openshift_apps_java -> kubernetes_namespace_name, message.",
       inputSchema: {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs. If omitted, DEFAULT_INDEX_ALIAS is used."),
+          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, DEFAULT_INDEX_ALIAS is used."),
         query: z
           .record(z.any())
           .optional()
@@ -158,7 +164,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs. If omitted, DEFAULT_INDEX_ALIAS is used."),
+          .describe("Index name or pattern (must be allowed). You can use java_application_logs, wmapi, openshift_apps_java, or alias names wm_api and openshift. If omitted, DEFAULT_INDEX_ALIAS is used."),
         query: z.record(z.any()).optional().describe("Optional Query DSL filter."),
       },
     },
@@ -183,11 +189,13 @@ function buildServer(): McpServer {
     {
       title: "Run an ES|QL query",
       description:
-        "Run a read-only ES|QL query. Must start with FROM <allowed-index>.",
+        "Run a read-only ES|QL query. Must start with FROM <allowed-index>. " +
+        "Field hints: java_application_logs uses application/message; " +
+        "wmapi uses apiName/responseCode; openshift_apps_java uses kubernetes_namespace_name/message.",
       inputSchema: {
         query: z
           .string()
-          .describe('e.g. FROM java_application_logs* | WHERE level == "ERROR" | LIMIT 20'),
+          .describe('e.g. FROM java_application_logs | WHERE application == "orders-service" | LIMIT 20'),
       },
     },
     async ({ query }) => {
@@ -225,7 +233,7 @@ function buildServer(): McpServer {
         index: z
           .string()
           .optional()
-          .describe("Optional index or alias. If omitted, DEFAULT_INDEX_ALIAS is used."),
+          .describe("Optional index or alias (java_application_logs, wmapi, openshift_apps_java, wm_api, openshift). If omitted, DEFAULT_INDEX_ALIAS is used."),
         size: z.number().int().min(1).max(200).optional().describe("Max hits (default 100, cap 200)."),
       },
     },
