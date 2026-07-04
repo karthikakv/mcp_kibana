@@ -6,6 +6,7 @@ import {
   getClient,
   assertAllowedIndex,
   assertEsqlAllowed,
+  resolveAllowedIndex,
   ALLOWED_PATTERNS,
 } from "./es-client.js";
 
@@ -71,13 +72,16 @@ function buildServer(): McpServer {
       description:
         "Return the field mappings (schema) for an allowed index so you know which fields you can query.",
       inputSchema: {
-        index: z.string().describe("Index name or pattern (must be allowed)."),
+        index: z
+          .string()
+          .optional()
+          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs."),
       },
     },
     async ({ index }) => {
       try {
         const es = getClient();
-        const idx = assertAllowedIndex(index);
+        const idx = resolveAllowedIndex(index);
         const res = await es.indices.getMapping({ index: idx });
         return ok(res);
       } catch (e) {
@@ -94,7 +98,10 @@ function buildServer(): McpServer {
       description:
         "Run a read-only Elasticsearch search against an allowed index using standard Query DSL.",
       inputSchema: {
-        index: z.string().describe("Index name or pattern (must be allowed)."),
+        index: z
+          .string()
+          .optional()
+          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs."),
         query: z
           .record(z.any())
           .optional()
@@ -115,7 +122,7 @@ function buildServer(): McpServer {
     async ({ index, query, size, from, sort, source_fields, aggs }) => {
       try {
         const es = getClient();
-        const idx = assertAllowedIndex(index);
+        const idx = resolveAllowedIndex(index);
         const res = await es.search({
           index: idx,
           query: (query as any) ?? { match_all: {} },
@@ -148,14 +155,17 @@ function buildServer(): McpServer {
       title: "Count documents",
       description: "Count documents in an allowed index matching an optional query.",
       inputSchema: {
-        index: z.string().describe("Index name or pattern (must be allowed)."),
+        index: z
+          .string()
+          .optional()
+          .describe("Index name or pattern (must be allowed). You can also use openshift, wm_api, wm_messages, or java_application_logs."),
         query: z.record(z.any()).optional().describe("Optional Query DSL filter."),
       },
     },
     async ({ index, query }) => {
       try {
         const es = getClient();
-        const idx = assertAllowedIndex(index);
+        const idx = resolveAllowedIndex(index);
         const res = await es.count({
           index: idx,
           query: (query as any) ?? undefined,

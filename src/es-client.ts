@@ -12,6 +12,13 @@ export const ALLOWED_PATTERNS = [
   "openshift_pod_logs*",
 ];
 
+const INDEX_ALIASES: Record<string, string> = {
+  java_application_logs: "java_application_logs*",
+  wm_api: "wmapi*",
+  wm_messages: "wm_messages*",
+  openshift: "openshift_pod_logs*",
+};
+
 // Turn each glob pattern into an anchored regex (only `*` is a wildcard).
 const allowedRegexes = ALLOWED_PATTERNS.map(
   (p) =>
@@ -27,6 +34,11 @@ const allowedRegexes = ALLOWED_PATTERNS.map(
  * Throws if any target is not permitted. Returns the normalised string.
  */
 export function assertAllowedIndex(index: string): string {
+  const alias = INDEX_ALIASES[index.trim()];
+  if (alias) {
+    index = alias;
+  }
+
   const targets = index
     .split(",")
     .map((s) => s.trim())
@@ -47,6 +59,16 @@ export function assertAllowedIndex(index: string): string {
     }
   }
   return targets.join(",");
+}
+
+export function resolveAllowedIndex(index?: string): string {
+  if (!index || !index.trim()) {
+    throw new Error(
+      "No index specified. Choose one of: java_application_logs, wm_api, wm_messages, openshift."
+    );
+  }
+
+  return assertAllowedIndex(index);
 }
 
 /** Light guard for ES|QL: the FROM target must be an allowed index. */
