@@ -19,9 +19,35 @@ export const INDEX_OPTIONS = [
 
 const INDEX_ALIASES: Record<string, string> = {
   java_application_logs: "java_application_logs",
+  "java_application_logs*": "java_application_logs",
+  wmapi: "wmapi",
+  "wmapi*": "wmapi",
   wm_api: "wmapi",
   openshift: "openshift_apps_java",
+  openshift_apps_log: "openshift_apps_java",
+  openshift_apps_logs: "openshift_apps_java",
+  openshift_apps_java: "openshift_apps_java",
+  "openshift_apps_java*": "openshift_apps_java",
 };
+
+function normalizeIndexToken(token: string): string {
+  const cleaned = token.trim();
+  const withoutPrefix = cleaned.replace(/^[-+]/, "");
+  const unquoted = withoutPrefix.replace(/["'`]/g, "");
+  const alias = INDEX_ALIASES[unquoted];
+  if (alias) {
+    return cleaned.replace(withoutPrefix, alias);
+  }
+
+  if (unquoted.endsWith("*")) {
+    const base = unquoted.slice(0, -1);
+    if (INDEX_OPTIONS.includes(base)) {
+      return cleaned.replace(withoutPrefix, base);
+    }
+  }
+
+  return cleaned;
+}
 
 // Turn each glob pattern into an anchored regex (only `*` is a wildcard).
 const allowedRegexes = ALLOWED_PATTERNS.map(
@@ -38,14 +64,9 @@ const allowedRegexes = ALLOWED_PATTERNS.map(
  * Throws if any target is not permitted. Returns the normalised string.
  */
 export function assertAllowedIndex(index: string): string {
-  const alias = INDEX_ALIASES[index.trim()];
-  if (alias) {
-    index = alias;
-  }
-
   const targets = index
     .split(",")
-    .map((s) => s.trim())
+    .map((s) => normalizeIndexToken(s))
     .filter(Boolean);
 
   if (targets.length === 0) {
@@ -56,9 +77,9 @@ export function assertAllowedIndex(index: string): string {
     const bare = t.replace(/^[-+]/, "").replace(/["'`]/g, "");
     if (!allowedRegexes.some((r) => r.test(bare))) {
       throw new Error(
-        `Index "${t}" is not permitted. Allowed patterns: ${ALLOWED_PATTERNS.join(
+        `Please choose a valid index and retry. Available options: ${INDEX_OPTIONS.join(
           ", "
-        )}`
+        )}. For OpenShift logs, use openshift_apps_java.`
       );
     }
   }
