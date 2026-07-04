@@ -98,8 +98,16 @@ function buildServer(): McpServer {
     }
   );
 
+  // NOTE (Azure AI Search interactivity): the tools below are intentionally
+  // NOT registered. A single-pass knowledge-source agent kept picking these
+  // index-requiring tools and then reported "no access" when it guessed wrong.
+  // Exposing ONLY find_logs (+ list_indices) forces every log question through
+  // the smart, self-disambiguating path. To restore the raw tools, un-comment
+  // the blocks and (if REQUIRE_INDEX_SELECTION hard-fails) set it to "false".
+  const EXPOSE_RAW_TOOLS = process.env.EXPOSE_RAW_TOOLS === "true";
+
   // 2) Get mappings --------------------------------------------------------
-  server.registerTool(
+  if (EXPOSE_RAW_TOOLS) server.registerTool(
     "get_mappings",
     {
       title: "Get field mappings",
@@ -128,7 +136,7 @@ function buildServer(): McpServer {
   );
 
   // 3) Search (Query DSL) --------------------------------------------------
-  server.registerTool(
+  if (EXPOSE_RAW_TOOLS) server.registerTool(
     "search",
     {
       title: "Search logs (Query DSL)",
@@ -189,7 +197,7 @@ function buildServer(): McpServer {
   );
 
   // 4) Count ---------------------------------------------------------------
-  server.registerTool(
+  if (EXPOSE_RAW_TOOLS) server.registerTool(
     "count",
     {
       title: "Count documents",
@@ -218,7 +226,7 @@ function buildServer(): McpServer {
   );
 
   // 5) ES|QL (read-only) ---------------------------------------------------
-  server.registerTool(
+  if (EXPOSE_RAW_TOOLS) server.registerTool(
     "esql_query",
     {
       title: "Run an ES|QL query",
@@ -245,7 +253,7 @@ function buildServer(): McpServer {
   );
 
   // 6) Text search over a time window --------------------------------------
-  server.registerTool(
+  if (EXPOSE_RAW_TOOLS) server.registerTool(
     "search_text_range",
     {
       title: "Search text in time range",
