@@ -202,6 +202,99 @@ function buildServer(): McpServer {
     }
   );
 
+  // 6) Text search over a time window --------------------------------------
+  server.registerTool(
+    "search_text_range",
+    {
+      title: "Search text in time range",
+      description:
+        "Search logs for a text term over a timestamp range. Use this for queries like 'ecustomermw from 2026-07-02 00:00 to 23:59'. " +
+        "If index is omitted, DEFAULT_INDEX_ALIAS is used.",
+      inputSchema: {
+        text: z.string().min(1).describe("Text to search for (e.g. ecustomermw)."),
+        start_time: z
+          .string()
+          .describe("Start datetime in ISO-8601 format (e.g. 2026-07-02T00:00:00)."),
+        end_time: z
+          .string()
+          .describe("End datetime in ISO-8601 format (e.g. 2026-07-02T23:59:59)."),
+        time_zone: z
+          .string()
+          .optional()
+          .describe("Timezone for date parsing (default UTC). Example: Europe/Brussels or +02:00."),
+        index: z
+          .string()
+          .optional()
+          .describe("Optional index or alias. If omitted, DEFAULT_INDEX_ALIAS is used."),
+        size: z.number().int().min(1).max(200).optional().describe("Max hits (default 100, cap 200)."),
+      },
+    },
+    async ({ text, start_time, end_time, time_zone, index, size }) => {
+      try {
+        const es = getClient();
+        const idx = resolveAllowedIndex(index);
+
+        const res = await es.search({
+          index: idx,
+          size: size ?? 100,
+          sort: [{ "@timestamp": { order: "asc" } }] as any,
+          query: {
+            bool: {
+              filter: [
+                {
+                  range: {
+                    "@timestamp": {
+                      gte: start_time,
+                      lte: end_time,
+                      time_zone: time_zone ?? "UTC",
+                    },
+                  },
+                },
+              ],
+              should: [
+                {
+                  simple_query_string: {
+                    query: text,
+                    fields: [
+                      "service.name",
+                      "logger_name",
+                      "logger",
+                      "message",
+                      "log",
+                      "kubernetes.container.name",
+                      "*",
+                    ],
+                    default_operator: "and",
+                  },
+                },
+                {
+                  match_phrase: {
+                    message: text,
+                  },
+                },
+              ],
+              minimum_should_match: 1,
+            },
+          } as any,
+        });
+
+        const total =
+          typeof res.hits.total === "number"
+            ? res.hits.total
+            : res.hits.total?.value;
+
+        return ok({
+          total_hits: total,
+          took_ms: res.took,
+          index_used: idx,
+          hits: res.hits.hits,
+        });
+      } catch (e) {
+        return fail(e);
+      }
+    }
+  );
+
   return server;
 }
 
