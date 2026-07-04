@@ -6,17 +6,15 @@ import { Client } from "@elastic/elasticsearch";
  * but we also refuse any request that targets an index outside this list.
  */
 export const ALLOWED_PATTERNS = [
-  "java_application_logs*",
-  "wmapi*",
-  "wm_messages*",
-  "openshift_pod_logs*",
+  "java_application_logs",
+  "wmapi",
+  "openshift_apps_java",
 ];
 
 const INDEX_ALIASES: Record<string, string> = {
-  java_application_logs: "java_application_logs*",
-  wm_api: "wmapi*",
-  wm_messages: "wm_messages*",
-  openshift: "openshift_pod_logs*",
+  java_application_logs: "java_application_logs",
+  wm_api: "wmapi",
+  openshift: "openshift_apps_java*",
 };
 
 // Turn each glob pattern into an anchored regex (only `*` is a wildcard).
